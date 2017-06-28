@@ -3,15 +3,18 @@ import numpy as np
 import cv2
 from sklearn.model_selection import train_test_split
 from keras.models import Sequential
-from keras.optimizers import Adam
+from keras.optimizers import Adam, adadelta
 from keras.callbacks import ModelCheckpoint
+from keras.layers import Dense, Flatten, Lambda, Activation, MaxPooling2D
+from keras.layers.convolutional import Convolution2D
 from keras.models import load_model
 from keras.layers import Lambda, Conv2D, MaxPooling2D, Dropout, Dense, Flatten
 import argparse
 import ast
+import random
 
 np.random.seed(0)
-IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS = 150, 300, 1
+IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS = 150, 400, 1
 INPUT_SHAPE = (IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS)
 batch_size = 50
 nb_classes = 3
@@ -29,25 +32,24 @@ def load_data(args):
         img = cv2.imread(add[0], 0)
         k = ast.literal_eval(out)
         if k == [0,0,1]:
-            #for _ in range(7):
             X.append(img)
             Y.append(k)
-            X.append(img)
-            Y.append(k)
+            X.append(cv2.flip( img, 0 ))
+            Y.append([1,0,0])
         elif k==[1,0,0]:
             X.append(img)
             Y.append(k)
-            X.append(img)
-            Y.append(k)
+            X.append(cv2.flip( img, 0 ))
+            Y.append([0,0,1])
 
         elif k == [0,1,0]:
-            if p < 4500:
+            if p % 3 == 0:
                 X.append(img)
                 Y.append(k)
-                p+=1
             else:
                 pass
-    print(Y)
+        p += 1
+    #print(Y)
     X = np.array(X, dtype=np.uint8)
     Y = np.array(Y, dtype=np.uint8)
     X = X.reshape(X.shape[0], IMAGE_HEIGHT, IMAGE_WIDTH, 1)
@@ -61,7 +63,7 @@ def load_data(args):
 
 def build_model(args):
 
-    model = Sequential()
+    '''model = Sequential()
     model.add(Lambda(lambda x: x/127.5-1.0, input_shape=INPUT_SHAPE))
     model.add(Conv2D(24, 5, 5, activation='elu', subsample=(2, 2)))
     model.add(Conv2D(36, 5, 5, activation='elu', subsample=(2, 2)))
@@ -74,6 +76,49 @@ def build_model(args):
     model.add(Dense(50, activation='elu'))
     model.add(Dense(10, activation='elu'))
     model.add(Dense(nb_classes))
+    model.summary()'''
+    activation_relu = 'relu'
+    model = Sequential()
+
+    model.add(Lambda(lambda x: x / 127.5 - 1.0, input_shape=INPUT_SHAPE))
+
+    model.add(Convolution2D(24, 5, 5, border_mode='same', subsample=(2, 2)))
+    model.add(Activation(activation_relu))
+    model.add(MaxPooling2D(pool_size=(2, 2), strides=(1, 1)))
+
+    model.add(Convolution2D(36, 5, 5, border_mode='same', subsample=(2, 2)))
+    model.add(Activation(activation_relu))
+    model.add(MaxPooling2D(pool_size=(2, 2), strides=(1, 1)))
+
+    model.add(Convolution2D(48, 5, 5, border_mode='same', subsample=(2, 2)))
+    model.add(Activation(activation_relu))
+    model.add(MaxPooling2D(pool_size=(2, 2), strides=(1, 1)))
+
+    model.add(Convolution2D(64, 3, 3, border_mode='same', subsample=(1, 1)))
+    model.add(Activation(activation_relu))
+    model.add(MaxPooling2D(pool_size=(2, 2), strides=(1, 1)))
+
+    model.add(Convolution2D(64, 3, 3, border_mode='same', subsample=(1, 1)))
+    model.add(Activation(activation_relu))
+    model.add(MaxPooling2D(pool_size=(2, 2), strides=(1, 1)))
+
+    model.add(Flatten())
+
+    # Next, five fully connected layers
+    model.add(Dense(1164))
+    model.add(Activation(activation_relu))
+
+    model.add(Dense(100))
+    model.add(Activation(activation_relu))
+
+    model.add(Dense(50))
+    model.add(Activation(activation_relu))
+
+    model.add(Dense(10))
+    model.add(Activation(activation_relu))
+
+    model.add(Dense(nb_classes))
+
     model.summary()
 
     return model
@@ -92,20 +137,10 @@ def train_model(model, args, X_train, X_valid, y_train, y_valid):
                                  save_best_only=args.save_best_only,
                                  mode='auto')
 
-    #calculate the difference between expected steering angle and actual steering angle
-    #square the difference
-    #add up all those differences for as many data points as we have
-    #divide by the number of them
-    #that value is our mean squared error! this is what we want to minimize via
-    #gradient descent
-    model.compile(loss='mean_squared_error', optimizer=Adam(lr=args.learning_rate))
 
-    #Fits the model on data generated batch-by-batch by a Python generator.
+    model.compile(loss='categorical_crossentropy', optimizer=adadelta(lr=args.learning_rate))
 
-    #The generator is run in parallel to the model, for efficiency.
-    #For instance, this allows you to do real-time data augmentation on images on CPU in
-    #parallel to training your model on GPU.
-    #so we reshape our data into their appropriate batches and train our model simulatenously
+
     model.fit(X_train, y_train, epochs=args.nb_epoch,batch_size=batch_size, validation_data=(X_valid, y_valid), callbacks=[checkpoint])
 
 
@@ -144,8 +179,8 @@ def main():
     #load data
     data = load_data(args)
     #build model
-    model = build_model(args)
-    #model = load_model("model-003a.h5")
+    #model = build_model(args)
+    model = load_model("model-000a.h5")
     #train model on data, it saves as model.h5
     train_model(model, args, *data)
 

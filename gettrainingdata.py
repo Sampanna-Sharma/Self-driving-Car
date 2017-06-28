@@ -45,9 +45,9 @@ if __name__ == "__main__":
         print(j + 1)
         time.sleep(1)
     while True:
-        image1 = grabscreen.grab_screen([100, 350, 700, 650])
+        image1 = grabscreen.grab_screen([0, 350, 800, 650])
         image1 = imageprocessing(image1)
-        image1 = cv2.resize(image1, (300, 150))
+        image1 = cv2.resize(image1, (400, 150))
         image_name = str(i)+ '.png'
         full_name_image = os.path.join('Images', image_name)
         keypressed = getkey()
