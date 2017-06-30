@@ -34,12 +34,12 @@ def load_data(args):
         if k == [0,0,1]:
             X.append(img)
             Y.append(k)
-            X.append(cv2.flip( img, 0 ))
+            X.append(cv2.flip( img, 1 ))
             Y.append([1,0,0])
         elif k==[1,0,0]:
             X.append(img)
             Y.append(k)
-            X.append(cv2.flip( img, 0 ))
+            X.append(cv2.flip( img, 1 ))
             Y.append([0,0,1])
 
         elif k == [0,1,0]:
@@ -76,13 +76,14 @@ def build_model(args):
     model.add(Dense(50, activation='elu'))
     model.add(Dense(10, activation='elu'))
     model.add(Dense(nb_classes))
-    model.summary()'''
+    model.summary()
+    '''
     activation_relu = 'relu'
     model = Sequential()
 
-    model.add(Lambda(lambda x: x / 127.5 - 1.0, input_shape=INPUT_SHAPE))
+    #model.add(Lambda(lambda x: x / 127.5 - 1.0, )
 
-    model.add(Convolution2D(24, 5, 5, border_mode='same', subsample=(2, 2)))
+    model.add(Convolution2D(24, 5, 5, border_mode='same', subsample=(2, 2),input_shape=INPUT_SHAPE))
     model.add(Activation(activation_relu))
     model.add(MaxPooling2D(pool_size=(2, 2), strides=(1, 1)))
 
@@ -106,18 +107,18 @@ def build_model(args):
 
     # Next, five fully connected layers
     model.add(Dense(1164))
-    model.add(Activation(activation_relu))
+    model.add(Activation("tanh"))
 
     model.add(Dense(100))
-    model.add(Activation(activation_relu))
+    model.add(Activation("tanh"))
 
     model.add(Dense(50))
-    model.add(Activation(activation_relu))
+    model.add(Activation("tanh"))
 
     model.add(Dense(10))
-    model.add(Activation(activation_relu))
+    model.add(Activation("tanh"))
 
-    model.add(Dense(nb_classes))
+    model.add(Dense(nb_classes,activation="softmax"))
 
     model.summary()
 
@@ -138,7 +139,7 @@ def train_model(model, args, X_train, X_valid, y_train, y_valid):
                                  mode='auto')
 
 
-    model.compile(loss='categorical_crossentropy', optimizer=adadelta(lr=args.learning_rate))
+    model.compile(loss='categorical_crossentropy', optimizer=Adam(lr=args.learning_rate))
 
 
     model.fit(X_train, y_train, epochs=args.nb_epoch,batch_size=batch_size, validation_data=(X_valid, y_valid), callbacks=[checkpoint])
@@ -180,7 +181,7 @@ def main():
     data = load_data(args)
     #build model
     #model = build_model(args)
-    model = load_model("model-000a.h5")
+    model = load_model("model1.h5")
     #train model on data, it saves as model.h5
     train_model(model, args, *data)
 

@@ -7,7 +7,7 @@ from sendkey import ReleaseKey
 import time
 import cv2
 IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS = 150, 400, 1
-model = load_model("model-000.h5")
+model = load_model("model1.h5")
 W = 0x11
 A = 0x1E
 S = 0x1F
@@ -29,10 +29,44 @@ while True:
     image1 /= 255
 
     output = (model.predict(image1,batch_size=1))
+    #output = np.abs(output)
     print(output)
 
 
-    out = (output-k)
+    if output[0][0] > output[0][1] and output[0][0] > output[0][2]:
+        op = output[0][0]
+        if op > 0.8:
+            PressKey(A)
+            ReleaseKey(W)
+            ReleaseKey(D)
+            print("A")
+        else:
+            print("AW")
+            PressKey(A)
+            PressKey(W)
+            ReleaseKey(D)
+    elif output[0][2] > output[0][1]:
+        op = output[0][2]
+        if op > 0.8:
+            print("D")
+            PressKey(D)
+            ReleaseKey(W)
+            ReleaseKey(A)
+        else:
+            print("DW")
+            PressKey(D)
+            PressKey(W)
+            ReleaseKey(A)
+    else:
+        PressKey(W)
+        ReleaseKey(A)
+        ReleaseKey(D)
+        print('W')
+
+    #time.sleep(0.2)
+
+
+    '''out = (output-k)
     out[0][0] = (out[0][0]/k[0][0])*100000
     out[0][1] = (out[0][1] / k[0][1]) * 100000
     out[0][2] = (out[0][2] / k[0][2]) * 100000
@@ -77,7 +111,7 @@ while True:
     #if cv2.waitKey(255) & 0xFF == ord('q'):
     #    cv2.destroyAllWindows()
     #    break
-    time.sleep(0.4)
+    time.sleep(0.4)'''
 
     '''if output[0][0] > output[0][1] and output[0][0] > output[0][2]:
         PressKey(A)
